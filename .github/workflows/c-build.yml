@@ -22,6 +22,12 @@ jobs:
       - run: which python3
 
   make_check:
+    strategy:
+      matrix:
+        os:
+        - macOS-latest
+        - ubuntu-latest
+    # needs: [setup_environment_${{ matrix.os }}]
     needs: setup_environment
     runs-on: ${{ matrix.os }}
     steps:
@@ -33,6 +39,12 @@ jobs:
       - run: make check
 
   cmake_build:
+    strategy:
+      matrix:
+        os:
+        - macOS-latest
+        - ubuntu-latest
+    # needs: [setup_environment_${{ matrix.os }}]
     needs: setup_environment
     runs-on: ${{ matrix.os }}
     steps:
