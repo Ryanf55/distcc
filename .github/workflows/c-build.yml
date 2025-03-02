@@ -5,28 +5,16 @@ on:
   pull_request:
 
 jobs:
-  setup_environment:
+  make_check:
     strategy:
       matrix:
         os:
-        - macOS-latest
-        - ubuntu-latest
+          - ubuntu-latest
+          - macOS-latest
       fail-fast: false
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ConorMacBride/install-package@v1
-        with:
-          brew: autoconf automake cmake ninja popt python python3 python-setuptools
-          apt: clang cmake ninja-build libavahi-client-dev libpopt-dev gdb python3-dev python3-setuptools
-      - run: which python3
-    outputs:
+    uses: ./.github/workflows/compile-env.yml
+    with:
       os: ${{ matrix.os }}
-
-  make_check:
-    # needs: [setup_environment_${{ matrix.os }}]
-    needs: setup_environment
-    runs-on: ${{ needs.setup_environment.outputs.os }}
     steps:
       - uses: actions/checkout@v4
       - run: ./autogen.sh
@@ -36,13 +24,21 @@ jobs:
       - run: make check
 
   cmake_build:
-    needs: setup_environment
-    runs-on: ${{ needs.setup_environment.outputs.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
+      fail-fast: false
+    uses: ./.github/workflows/compile-env.yml
+    with:
+      os: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build
+      # Build both debug and release to catch different compile issues
       - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build
+      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build
       - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_AUTH=ON
       - run: cmake --build build
