@@ -5,44 +5,58 @@ on:
   pull_request:
 
 jobs:
-  make_check:
+  build:
     strategy:
       matrix:
         os:
           - ubuntu-latest
           - macOS-latest
       fail-fast: false
-    uses: ./.github/workflows/compile-env.yml
-    with:
-      os: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./autogen.sh
-      # Setting `python3` helps it find the Homebrew Python on macOS.
-      - run: ./configure PYTHON=python3
-      - run: make
-      - run: make check
+    runs-on: ${{ matrix.os }}
 
-  cmake_build:
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macOS-latest
-      fail-fast: false
-    uses: ./.github/workflows/compile-env.yml
-    with:
-      os: ${{ matrix.os }}
     steps:
+      # Checkout the repository
       - uses: actions/checkout@v4
-      # Build both debug and release to catch different compile issues
-      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-      - run: cmake --build build
-      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build
-      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_AUTH=ON
-      - run: cmake --build build
-      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GTK=ON
-      - run: cmake --build build
-      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_AVAHI=OFF
-      - run: cmake --build build
+
+      # Install dependencies based on OS
+      - uses: ConorMacBride/install-package@v1
+        with:
+          # Note: aclocal is packaged with automake in Homebrew, so we need it
+          # even though we don't use automake.
+          brew: autoconf cmake automake krb5 ninja popt python python3  python-setuptools
+          # Note: no gdb on macOS because it's apparently not supported on arm64
+          apt: clang cmake libavahi-client-dev libkrb5-dev libpopt-dev gdb ninja-build python3-dev python3-setuptools 
+          # brew-cask: TODO
+          # choco: TODO
+
+      # Check Python version
+      - name: Check Python3 Installation
+        run: which python3
+
+      # Check Ninja installation
+      - name: Check Ninja Installation
+        run: ninja --version || echo "Ninja not found"
+
+      # Autogen, configure, make check for Ubuntu/macOS
+      - name: Run autogen.sh and make check
+        run: |
+          ./autogen.sh
+          ./configure PYTHON=python3
+          make
+          make check
+
+      # CMake build process for different configurations
+      # Clean out the autoconf data first so config.h doesn't get included twice.
+      - name: CMake Build
+        run: |
+          git clean -dxf
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_AUTH=ON
+          cmake --build build
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GTK=ON
+          cmake --build build
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_AVAHI=OFF
+          cmake --build build
