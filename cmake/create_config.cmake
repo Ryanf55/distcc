@@ -102,6 +102,14 @@ function(create_config TARGET_NAME)
     include(CheckStructHasMember)
     check_struct_has_member("struct sockaddr_storage" ss_family "sys/socket.h" HAVE_SOCKADDR_STORAGE)
 
+
+    # Check for function declarations in stdio.h and string.h
+    check_symbol_exists(asprintf   "stdio.h"  HAVE_DECL_ASPRINTF)
+    check_symbol_exists(snprintf   "stdio.h"  HAVE_DECL_SNPRINTF)
+    check_symbol_exists(strndup    "string.h" HAVE_DECL_STRNDUP)
+    check_symbol_exists(vasprintf  "stdio.h"  HAVE_DECL_VASPRINTF)
+    check_symbol_exists(vsnprintf  "stdio.h"  HAVE_DECL_VSNPRINTF)
+
     # Set the compiler triple (architecture-system)
     set(NATIVE_COMPILER_TRIPLE "${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_SYSTEM_NAME}")
 
