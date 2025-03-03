@@ -104,11 +104,23 @@ function(create_config TARGET_NAME)
 
 
     # Check for function declarations in stdio.h and string.h
-    check_symbol_exists(asprintf   "stdio.h"  HAVE_DECL_ASPRINTF)
-    check_symbol_exists(snprintf   "stdio.h"  HAVE_DECL_SNPRINTF)
-    check_symbol_exists(strndup    "string.h" HAVE_DECL_STRNDUP)
-    check_symbol_exists(vasprintf  "stdio.h"  HAVE_DECL_VASPRINTF)
-    check_symbol_exists(vsnprintf  "stdio.h"  HAVE_DECL_VSNPRINTF)
+    # This may not work as expected considering we're looking if the symbol exists.
+    # If there are reports, consider "try_compile"
+    # https://stackoverflow.com/q/44754512
+    # Macro to check for function declarations in the correct header
+    macro(check_decl FUNCTION HEADER VAR)
+        check_c_source_compiles("
+            #include <${HEADER}>
+            int main() { (void) ${FUNCTION}; return 0; }
+        " ${VAR})
+    endmacro()
+
+    # Check function declarations using the appropriate headers
+    check_decl("asprintf"   "stdio.h"  HAVE_DECL_ASPRINTF)
+    check_decl("snprintf"   "stdio.h"  HAVE_DECL_SNPRINTF)
+    check_decl("vasprintf"  "stdio.h"  HAVE_DECL_VASPRINTF)
+    check_decl("vsnprintf"  "stdio.h"  HAVE_DECL_VSNPRINTF)
+    check_decl("strndup"    "string.h" HAVE_DECL_STRNDUP)
 
     # Set the compiler triple (architecture-system)
     set(NATIVE_COMPILER_TRIPLE "${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_SYSTEM_NAME}")
